@@ -2,7 +2,7 @@
 <html>
 
 <head>
-  <title>Cam Link 4K Viewer (Full Page)</title>
+  <title>Cam Link 4K Viewer</title>
   <style>
     html,
     body {
@@ -24,7 +24,7 @@
 </head>
 
 <body>
-  <video id="video" autoplay playsinline controls></video>
+  <video id="video" autoplay playsinline></video>
 
   <script>
     async function getPermissions() {
@@ -52,13 +52,9 @@
       const constraints = {
         video: {
           deviceId: videoDevice.deviceId,
-          width: { ideal: 640 },
-          height: { ideal: 360 },
-          frameRate: { max: 15 }
         },
         audio: {
           deviceId: audioDevice.deviceId,
-          sampleRate: 16000
         }
       };
 
