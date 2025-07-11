@@ -56,7 +56,10 @@
           height: { ideal: 360 },
           frameRate: { max: 15 }
         },
-        audio: { deviceId: audioDevice.deviceId }
+        audio: {
+          deviceId: audioDevice.deviceId,
+          sampleRate: 44100
+        }
       };
 
       return navigator.mediaDevices.getUserMedia(constraints);
@@ -78,4 +81,5 @@
     start();
   </script>
 </body>
+
 </html>
