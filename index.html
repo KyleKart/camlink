@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Cam Link 4K Viewer</title>
+</head>
+<body>
+  <video id="video" autoplay playsinline controls style="width: 720px; max-width: 100%;"></video>
+
+  <script>
+    async function getPermissions() {
+      await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    }
+
+    async function getCamLinkStream() {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+
+      const videoDevice = devices.find(d => d.kind === 'videoinput' && d.label === 'Cam Link 4K');
+      const audioDevice = devices.find(d => d.kind === 'audioinput' && d.label === 'Cam Link 4K');
+
+      if (!videoDevice || !audioDevice) {
+        alert('This site requires the "Cam Link 4K". Check if it\'s properely connected.');
+        return null;
+      }
+
+      const constraints = {
+        video: { deviceId: videoDevice.deviceId, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: { deviceId: audioDevice.deviceId }
+      };
+
+      return navigator.mediaDevices.getUserMedia(constraints);
+    }
+
+    async function start() {
+      try {
+        await getPermissions();
+        await new Promise(r => setTimeout(r, 1000));
+
+        const stream = await getCamLinkStream();
+        if (!stream) return;
+
+        const video = document.getElementById('video');
+        video.srcObject = stream;
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    start();
+  </script>
+</body>
+</html>
