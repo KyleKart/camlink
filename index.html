@@ -1,10 +1,33 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-  <title>Cam Link 4K Viewer</title>
+  <title>Cam Link 4K Viewer (Full Page)</title>
+  <style>
+    /* Remove default margins and make body fill viewport */
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      background: black;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Make video fill viewport fully */
+    video {
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      /* cover the area, cropping if needed */
+      background: black;
+    }
+  </style>
 </head>
+
 <body>
-  <video id="video" autoplay playsinline controls style="width: 720px; max-width: 100%;"></video>
+  <video id="video" autoplay playsinline controls></video>
 
   <script>
     async function getPermissions() {
@@ -14,8 +37,15 @@
     async function getCamLinkStream() {
       const devices = await navigator.mediaDevices.enumerateDevices();
 
-      const videoDevice = devices.find(d => d.kind === 'videoinput' && d.label === 'Cam Link 4K');
-      const audioDevice = devices.find(d => d.kind === 'audioinput' && d.label === 'Cam Link 4K');
+      const videoDevice = devices.find(d =>
+        d.kind === 'videoinput' &&
+        d.label.toLowerCase().includes('cam link 4k')
+      );
+
+      const audioDevice = devices.find(d =>
+        d.kind === 'audioinput' &&
+        d.label.toLowerCase().includes('cam link 4k')
+      );
 
       if (!videoDevice || !audioDevice) {
         alert('This site requires the "Cam Link 4K". Check if it\'s properely connected.');
@@ -23,7 +53,12 @@
       }
 
       const constraints = {
-        video: { deviceId: videoDevice.deviceId, width: { ideal: 1280 }, height: { ideal: 720 } },
+        video: {
+          deviceId: videoDevice.deviceId,
+          width: { ideal: 640 },
+          height: { ideal: 360 },
+          frameRate: { max: 15 }
+        },
         audio: { deviceId: audioDevice.deviceId }
       };
 
@@ -34,12 +69,10 @@
       try {
         await getPermissions();
         await new Promise(r => setTimeout(r, 1000));
-
         const stream = await getCamLinkStream();
         if (!stream) return;
 
-        const video = document.getElementById('video');
-        video.srcObject = stream;
+        document.getElementById('video').srcObject = stream;
       } catch (e) {
         alert('Error: ' + e.message);
       }
@@ -48,4 +81,5 @@
     start();
   </script>
 </body>
+
 </html>
