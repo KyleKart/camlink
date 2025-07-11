@@ -4,23 +4,20 @@
 <head>
   <title>Cam Link 4K Viewer (Full Page)</title>
   <style>
-    /* Remove default margins and make body fill viewport */
     html,
     body {
       margin: 0;
       height: 100%;
-      background: black;
+      background: transparent;
       display: flex;
       justify-content: center;
       align-items: center;
     }
 
-    /* Make video fill viewport fully */
     video {
       width: 100vw;
       height: 100vh;
-      object-fit: cover;
-      /* cover the area, cropping if needed */
+      object-fit: contain;
       background: black;
     }
   </style>
@@ -81,5 +78,4 @@
     start();
   </script>
 </body>
-
 </html>
