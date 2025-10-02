@@ -8,7 +8,7 @@
     body {
       margin: 0;
       height: 100%;
-      background: transparent;
+      background: black;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -38,15 +38,6 @@
         video.muted = params.get("muted") === "true";
       }
 
-      if (params.has("width")) {
-        let w = params.get("width");
-        video.style.width = isNaN(w) ? w : w + "px";
-      }
-
-      if (params.has("height")) {
-        let h = params.get("height");
-        video.style.height = isNaN(h) ? h : h + "px";
-      }
     }
 
     async function getPermissions() {
