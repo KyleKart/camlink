@@ -27,6 +27,41 @@
   <video id="video" autoplay playsinline></video>
 
   <script>
+    const params = new URLSearchParams(window.location.search);
+
+    function applySettings(video) {
+
+      if (params.has("fit")) {
+        video.style.objectFit = params.get("fit");
+      }
+
+      if (params.has("bg")) {
+        video.style.background = params.get("bg");
+      }
+
+      if (params.has("muted")) {
+        video.muted = params.get("muted") === "true";
+      }
+
+      if (params.has("autoplay")) {
+        if (params.get("autoplay") === "false") {
+          video.removeAttribute("autoplay");
+        } else {
+          video.setAttribute("autoplay", "autoplay");
+        }
+      }
+
+      if (params.has("width")) {
+        let w = params.get("width");
+        video.style.width = isNaN(w) ? w : w + "px";
+      }
+
+      if (params.has("height")) {
+        let h = params.get("height");
+        video.style.height = isNaN(h) ? h : h + "px";
+      }
+    }
+
     async function getPermissions() {
       await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     }
@@ -45,30 +80,29 @@
       );
 
       if (!videoDevice || !audioDevice) {
-        alert('This site requires the "Cam Link 4K". Check if it\'s properely connected.');
+        alert('This site requires the "Cam Link 4K". Check if it\'s properly connected.');
         return null;
       }
 
       const constraints = {
-        video: {
-          deviceId: videoDevice.deviceId,
-        },
-        audio: {
-          deviceId: audioDevice.deviceId,
-        }
+        video: { deviceId: videoDevice.deviceId },
+        audio: { deviceId: audioDevice.deviceId }
       };
 
       return navigator.mediaDevices.getUserMedia(constraints);
     }
 
     async function start() {
+      const video = document.getElementById('video');
+      applySettings(video);
+
       try {
         await getPermissions();
         await new Promise(r => setTimeout(r, 1000));
         const stream = await getCamLinkStream();
         if (!stream) return;
 
-        document.getElementById('video').srcObject = stream;
+        video.srcObject = stream;
       } catch (e) {
         alert('Error: ' + e.message);
       }
@@ -77,5 +111,4 @@
     start();
   </script>
 </body>
-
 </html>
