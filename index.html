@@ -65,10 +65,10 @@
       const videoConstraints = { deviceId: videoDevice.deviceId };
 
       if (params.has("vwidth")) {
-        videoConstraints.width = { ideal: parseInt(params.get("vwidth")) };
+        videoConstraints.minWidth = { ideal: parseInt(params.get("vwidth")) };
       }
       if (params.has("vheight")) {
-        videoConstraints.height = { ideal: parseInt(params.get("vheight")) };
+        videoConstraints.minHeight = { ideal: parseInt(params.get("vheight")) };
       }
       if (params.has("framerate")) {
         videoConstraints.frameRate = { ideal: parseInt(params.get("framerate")) };
