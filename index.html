@@ -1,14 +1,30 @@
 <!DOCTYPE html>
 <html>
-
 <head>
   <title>Cam Link 4K Viewer</title>
   <style>
-    html,
-    body {
+    html, body {
       margin: 0;
       height: 100%;
       background: black;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #controls {
+      background: rgba(0,0,0,0.6);
+      color: white;
+      padding: 8px;
+      font-family: sans-serif;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      z-index: 2;
+    }
+
+    #video-container {
+      flex: 1;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -20,85 +36,185 @@
       object-fit: contain;
       background: black;
     }
+
+    #debug {
+      position: fixed;
+      bottom: 5px;
+      right: 5px;
+      background: rgba(0,0,0,0.6);
+      padding: 5px 10px;
+      font-family: monospace;
+      font-size: 14px;
+      color: white;
+      border-radius: 4px;
+      user-select: text;
+    }
   </style>
 </head>
-
 <body>
-  <video id="video" autoplay playsinline></video>
+
+  <div id="controls">
+    <label>Resolution:</label>
+    <select id="resolutionSelect"></select>
+    <button id="applyBtn">Apply</button>
+  </div>
+
+  <div id="video-container">
+    <video id="video" autoplay playsinline muted></video>
+  </div>
+
+  <div id="debug">Loading…</div>
 
   <script>
+    const video = document.getElementById("video");
+    const debug = document.getElementById("debug");
+    const resolutionSelect = document.getElementById("resolutionSelect");
+    const applyBtn = document.getElementById("applyBtn");
+
     const params = new URLSearchParams(window.location.search);
+    let selectedVideoDevice = null;
+    let capabilities = null;
+    let currentStream = null;
 
-    function applyVisualSettings(video) {
-      if (params.has("fit")) {
+    function applyVisualSettings() {
+      if (params.has("fit"))
         video.style.objectFit = params.get("fit");
-      }
 
-      if (params.has("muted")) {
+      if (params.has("muted"))
         video.muted = params.get("muted") === "true";
-      }
-
     }
 
     async function getPermissions() {
       await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     }
 
-    async function getCamLinkStream() {
-      const devices = await navigator.mediaDevices.enumerateDevices();
+    function getResolutionsFromCapabilities(cap) {
+      const results = [];
 
-      const videoDevice = devices.find(d =>
-        d.kind === 'videoinput' &&
-        d.label.toLowerCase().includes('cam link 4k')
-      );
+      if (cap.width && cap.height) {
+        const minW = cap.width.min || 0;
+        const maxW = cap.width.max || 0;
+        const minH = cap.height.min || 0;
+        const maxH = cap.height.max || 0;
 
-      const audioDevice = devices.find(d =>
-        d.kind === 'audioinput' &&
-        d.label.toLowerCase().includes('cam link 4k')
-      );
+        const common = [
+          [3840, 2160],
+          [2560, 1440],
+          [1920, 1080],
+          [1280, 720],
+          [640, 480]
+        ];
 
-      if (!videoDevice || !audioDevice) {
-        alert('This site requires the "Cam Link 4K". Check if it\'s properly connected.');
-        return null;
+        for (let [w, h] of common) {
+          if (w >= minW && w <= maxW && h >= minH && h <= maxH) {
+            results.push({ w, h });
+          }
+        }
       }
 
-      const videoConstraints = { deviceId: videoDevice.deviceId };
+      return results;
+    }
 
-      if (params.has("vwidth")) {
-        videoConstraints.minWidth = { ideal: parseInt(params.get("vwidth")) };
-      }
-      if (params.has("vheight")) {
-        videoConstraints.minHeight = { ideal: parseInt(params.get("vheight")) };
-      }
-      if (params.has("framerate")) {
-        videoConstraints.frameRate = { ideal: parseInt(params.get("framerate")) };
-      }
+    async function getCamLinkStream(width, height, framerate = 60) {
+      if (!selectedVideoDevice) return null;
 
       const constraints = {
-        video: videoConstraints,
-        audio: { deviceId: audioDevice.deviceId }
+        video: {
+          deviceId: { exact: selectedVideoDevice.deviceId },
+          width: width ? { ideal: width } : undefined,
+          height: height ? { ideal: height } : undefined,
+          frameRate: { ideal: framerate }
+        },
+        audio: false
       };
 
-      return navigator.mediaDevices.getUserMedia(constraints);
-    }
-
-    async function start() {
-      const video = document.getElementById('video');
-      applyVisualSettings(video);
-
-      try {
-        await getPermissions();
-        await new Promise(r => setTimeout(r, 1000));
-        const stream = await getCamLinkStream();
-        if (!stream) return;
-
-        video.srcObject = stream;
-      } catch (e) {
-        alert('Error: ' + e.message);
+      if (currentStream) {
+        currentStream.getTracks().forEach(t => t.stop());
       }
+
+      currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+      video.srcObject = currentStream;
+      return currentStream;
     }
 
-    start();
+    async function measureFPS() {
+      let last = performance.now();
+      let frames = 0;
+
+      function loop() {
+        frames++;
+        const now = performance.now();
+
+        if (now - last >= 1000) {
+          const fps = frames;
+          frames = 0;
+          last = now;
+
+          debug.innerText =
+            `Resolution: ${video.videoWidth}×${video.videoHeight}\n` +
+            `FPS: ${fps}`;
+        }
+
+        requestAnimationFrame(loop);
+      }
+      loop();
+    }
+
+    async function init() {
+      applyVisualSettings();
+      await getPermissions();
+      await new Promise(r => setTimeout(r, 500));
+
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      selectedVideoDevice = devices.find(d =>
+        d.kind === "videoinput" &&
+        d.label.toLowerCase().includes("cam link 4k")
+      );
+
+      if (!selectedVideoDevice) {
+        alert("Cam Link 4K not found.");
+        return;
+      }
+
+      // temporary stream to read capabilities
+      const testStream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: { exact: selectedVideoDevice.deviceId } }
+      });
+
+      const track = testStream.getVideoTracks()[0];
+      capabilities = track.getCapabilities();
+      testStream.getTracks().forEach(t => t.stop());
+
+      const resolutions = getResolutionsFromCapabilities(capabilities);
+
+      resolutionSelect.innerHTML = "";
+      for (let r of resolutions) {
+        const opt = document.createElement("option");
+        opt.value = `${r.w}x${r.h}`;
+        opt.innerText = `${r.w} × ${r.h}`;
+        resolutionSelect.appendChild(opt);
+      }
+
+      // auto select highest
+      if (resolutions.length > 0) {
+        resolutionSelect.selectedIndex = 0;
+      }
+
+      // start with highest resolution
+      const [w, h] = resolutionSelect.value.split("x").map(Number);
+      await getCamLinkStream(w, h, 60);
+
+      // start debug loop
+      measureFPS();
+    }
+
+    applyBtn.addEventListener("click", async () => {
+      const [w, h] = resolutionSelect.value.split("x").map(Number);
+      await getCamLinkStream(w, h, 60);
+    });
+
+    init();
   </script>
+
 </body>
 </html>
