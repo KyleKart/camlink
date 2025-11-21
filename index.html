@@ -23,20 +23,25 @@
       z-index: 2;
     }
 
-#video-container {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden; /* prevents scrollbars */
-}
+    /* Hidden when fullscreen */
+    .fullscreen-hide {
+      display: none !important;
+    }
 
-video {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  background: black;
-}
+    #video-container {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: black;
+    }
 
     #debug {
       position: fixed;
@@ -49,6 +54,7 @@ video {
       color: white;
       border-radius: 4px;
       user-select: text;
+      z-index: 3;
     }
   </style>
 </head>
@@ -58,6 +64,7 @@ video {
     <label>Resolution:</label>
     <select id="resolutionSelect"></select>
     <button id="applyBtn">Apply</button>
+    <button id="fsBtn">Fullscreen</button>
   </div>
 
   <div id="video-container">
@@ -71,6 +78,8 @@ video {
     const debug = document.getElementById("debug");
     const resolutionSelect = document.getElementById("resolutionSelect");
     const applyBtn = document.getElementById("applyBtn");
+    const controls = document.getElementById("controls");
+    const fsBtn = document.getElementById("fsBtn");
 
     const params = new URLSearchParams(window.location.search);
     let selectedVideoDevice = null;
@@ -98,6 +107,7 @@ video {
         const minH = cap.height.min || 0;
         const maxH = cap.height.max || 0;
 
+        // Known common capture modes
         const common = [
           [3840, 2160],
           [2560, 1440],
@@ -205,13 +215,33 @@ video {
       const [w, h] = resolutionSelect.value.split("x").map(Number);
       await getCamLinkStream(w, h, 60);
 
-      // start debug loop
       measureFPS();
     }
 
     applyBtn.addEventListener("click", async () => {
       const [w, h] = resolutionSelect.value.split("x").map(Number);
       await getCamLinkStream(w, h, 60);
+    });
+
+    // Fullscreen handling
+    fsBtn.addEventListener("click", () => {
+      const root = document.documentElement;
+
+      if (!document.fullscreenElement) {
+        root.requestFullscreen().catch(err => console.error(err));
+      } else {
+        document.exitFullscreen();
+      }
+    });
+
+    document.addEventListener("fullscreenchange", () => {
+      if (document.fullscreenElement) {
+        controls.classList.add("fullscreen-hide");
+        fsBtn.textContent = "Exit Fullscreen";
+      } else {
+        controls.classList.remove("fullscreen-hide");
+        fsBtn.textContent = "Fullscreen";
+      }
     });
 
     init();
