@@ -12,28 +12,35 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      flex-direction: column;
     }
 
     video {
       width: 100%;
-      height: 100%;
+      height: 90%;
       object-fit: contain;
       background: black;
+    }
+
+    audio {
+      width: 100%;
+      outline: none;
     }
   </style>
 </head>
 <body>
-  <video id="video" autoplay playsinline></video>
+  <video id="video" autoplay playsinline muted></video>
+  <audio id="audio" autoplay controls></audio>
 
   <script>
     const video = document.getElementById("video");
+    const audio = document.getElementById("audio");
     let currentStream = null;
 
     async function startCamLink() {
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
 
-        // Find Cam Link video and audio
         const camLinkVideo = devices.find(d =>
           d.kind === "videoinput" &&
           d.label.toLowerCase().includes("cam link 4k")
@@ -49,21 +56,29 @@
           return;
         }
 
-        const constraints = {
+        // Video stream (no audio)
+        const videoConstraints = {
           video: {
             deviceId: { exact: camLinkVideo.deviceId },
             width: { ideal: 3840 },
             height: { ideal: 2160 },
             frameRate: { ideal: 60 }
           },
-          audio: camLinkAudio ? { deviceId: { exact: camLinkAudio.deviceId } } : false
+          audio: false
         };
 
         if (currentStream) currentStream.getTracks().forEach(t => t.stop());
-        currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+        currentStream = await navigator.mediaDevices.getUserMedia(videoConstraints);
         video.srcObject = currentStream;
 
-        // Audio plays directly via the video element; no extra routing needed
+        // Separate audio stream
+        if (camLinkAudio) {
+          const audioStream = await navigator.mediaDevices.getUserMedia({
+            audio: { deviceId: { exact: camLinkAudio.deviceId } },
+            video: false
+          });
+          audio.srcObject = audioStream;
+        }
 
       } catch (err) {
         alert('Error accessing Cam Link 4K: ' + err.message);
