@@ -33,6 +33,7 @@
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
 
+        // Find Cam Link video and audio
         const camLinkVideo = devices.find(d =>
           d.kind === "videoinput" &&
           d.label.toLowerCase().includes("cam link 4k")
@@ -62,11 +63,7 @@
         currentStream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = currentStream;
 
-        if (camLinkAudio) {
-          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          const source = audioCtx.createMediaStreamSource(currentStream);
-          source.connect(audioCtx.destination);
-        }
+        // Audio plays directly via the video element; no extra routing needed
 
       } catch (err) {
         alert('Error accessing Cam Link 4K: ' + err.message);
