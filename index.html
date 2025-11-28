@@ -37,13 +37,14 @@
   </style>
 </head>
 <body>
-  <video id="video" autoplay playsinline muted></video>
+  <video id="video" autoplay playsinline></video>
   <div id="debug">Loading…</div>
 
   <script>
     const video = document.getElementById("video");
     const debug = document.getElementById("debug");
     let currentStream = null;
+    let audioCtx, source;
 
     async function startCamLink() {
       try {
@@ -65,12 +66,28 @@
             height: { ideal: 2160 },
             frameRate: { ideal: 60 }
           },
-          audio: false
+          audio: true
         };
 
         if (currentStream) currentStream.getTracks().forEach(t => t.stop());
         currentStream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = currentStream;
+
+        const videoTrack = currentStream.getVideoTracks()[0];
+        const settings = videoTrack.getSettings();
+        debug.innerText = `
+Resolution: ${settings.width}x${settings.height}
+FPS: ${settings.frameRate || 'N/A'}
+Audio: ${currentStream.getAudioTracks().length > 0 ? 'Yes' : 'No'}
+        `.trim();
+
+        // Setup Web Audio API for autoplay audio
+        if (currentStream.getAudioTracks().length > 0) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          source = audioCtx.createMediaStreamSource(currentStream);
+          source.connect(audioCtx.destination);
+        }
+
       } catch (err) {
         alert('Error accessing Cam Link 4K: ' + err.message);
       }
@@ -87,7 +104,7 @@
           const fps = frames;
           frames = 0;
           last = now;
-          debug.innerText = `FPS: ${fps}`;
+          debug.innerText = debug.innerText.replace(/FPS: .*$/m, `FPS: ${fps}`);
         }
         requestAnimationFrame(loop);
       }
