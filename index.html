@@ -20,124 +20,45 @@
       object-fit: contain;
       background: black;
     }
-
-    /* Options menu */
-    #menu {
-      position: fixed;
-      top: 50px;
-      right: 50px;
-      padding: 20px;
-      background: rgba(0,0,0,0.8);
-      border: 1px solid white;
-      border-radius: 10px;
-      color: white;
-      font-family: sans-serif;
-      width: 260px;
-      display: none;
-      z-index: 10;
-    }
-
-    #menu h2 {
-      margin-top: 0;
-      font-size: 20px;
-    }
-
-    #menu label {
-      display: block;
-      margin: 10px 0 4px;
-    }
-
-    #menu select {
-      width: 100%;
-      padding: 6px;
-      background: #222;
-      color: white;
-      border: 1px solid #555;
-      border-radius: 5px;
-    }
-
-    #menu small {
-      opacity: 0.8;
-    }
   </style>
 </head>
 <body>
-  <video id="video" playsinline></video>
-
-  <div id="menu">
-    <h2>Viewer Options</h2>
-
-    <label>Fit Mode</label>
-    <select id="fitMode">
-      <option value="contain">Contain (default)</option>
-      <option value="cover">Cover (fill, crop)</option>
-      <option value="fill">Fill (stretch)</option>
-    </select>
-
-    <label>Resolution</label>
-    <select id="resolution">
-      <option value="3840x2160">4K (3840×2160)</option>
-      <option value="1920x1080">1080p</option>
-      <option value="1280x720">720p</option>
-    </select>
-
-    <label>Frame Rate</label>
-    <select id="fps">
-      <option value="60">60 FPS</option>
-      <option value="30">30 FPS</option>
-    </select>
-
-    <small>Press <b>M</b> to toggle this menu</small>
-  </div>
+  <video id="video" autoplay playsinline></video>
 
   <script>
     const video = document.getElementById("video");
-    const menu = document.getElementById("menu");
-
     let currentStream = null;
-
-    let settings = {
-      fit: "contain",
-      width: 3840,
-      height: 2160,
-      fps: 60
-    };
-
-    async function getCamLinkConstraints() {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-
-      const camLinkVideo = devices.find(d =>
-        d.kind === "videoinput" &&
-        d.label.toLowerCase().includes("cam link 4k")
-      );
-
-      const camLinkAudio = devices.find(d =>
-        d.kind === "audioinput" &&
-        d.label.toLowerCase().includes("cam link 4k")
-      );
-
-      if (!camLinkVideo) return null;
-
-      return {
-        video: {
-          deviceId: { exact: camLinkVideo.deviceId },
-          width: { ideal: settings.width },
-          height: { ideal: settings.height },
-          frameRate: { ideal: settings.fps }
-        },
-        audio: camLinkAudio
-          ? { deviceId: { exact: camLinkAudio.deviceId } }
-          : false
-      };
-    }
 
     async function startCamLink() {
       try {
-        const constraints = await getCamLinkConstraints();
-        if (!constraints) {
-          alert("Cam Link 4K not found.");
+        const devices = await navigator.mediaDevices.enumerateDevices();
+
+        const camLinkVideo = devices.find(d =>
+          d.kind === "videoinput" &&
+          d.label.toLowerCase().includes("cam link 4k")
+        );
+
+        const camLinkAudio = devices.find(d =>
+          d.kind === "audioinput" &&
+          d.label.toLowerCase().includes("cam link 4k")
+        );
+
+        if (!camLinkVideo) {
+          alert("Cam Link 4K video not found.");
           return;
         }
+
+        const constraints = {
+          video: {
+            deviceId: { exact: camLinkVideo.deviceId },
+            width: { ideal: 3840 },
+            height: { ideal: 2160 },
+            frameRate: { ideal: 60 }
+          },
+          audio: camLinkAudio
+            ? { deviceId: { exact: camLinkAudio.deviceId } }
+            : false
+        };
 
         if (currentStream) currentStream.getTracks().forEach(t => t.stop());
 
@@ -145,34 +66,9 @@
         video.srcObject = currentStream;
 
       } catch (err) {
-        alert("Error accessing Cam Link 4K: " + err.message);
+        alert('Error accessing Cam Link 4K: ' + err.message);
       }
     }
-
-    // Menu toggle with M key
-    document.addEventListener("keydown", (e) => {
-      if (e.key.toLowerCase() === "m") {
-        menu.style.display = menu.style.display === "none" ? "block" : "none";
-      }
-    });
-
-    // Apply settings and restart stream when changed
-    document.getElementById("fitMode").addEventListener("change", (e) => {
-      settings.fit = e.target.value;
-      video.style.objectFit = settings.fit;
-    });
-
-    document.getElementById("resolution").addEventListener("change", (e) => {
-      const [w, h] = e.target.value.split("x").map(Number);
-      settings.width = w;
-      settings.height = h;
-      startCamLink();
-    });
-
-    document.getElementById("fps").addEventListener("change", (e) => {
-      settings.fps = Number(e.target.value);
-      startCamLink();
-    });
 
     startCamLink();
   </script>
