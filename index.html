@@ -20,71 +20,52 @@
       object-fit: contain;
       background: black;
     }
-
-    #debug {
-      position: fixed;
-      bottom: 5px;
-      right: 5px;
-      background: rgba(0,0,0,0.6);
-      padding: 5px 10px;
-      font-family: monospace;
-      font-size: 14px;
-      color: white;
-      border-radius: 4px;
-      user-select: text;
-      z-index: 3;
-    }
   </style>
 </head>
 <body>
   <video id="video" autoplay playsinline></video>
-  <div id="debug">Loading…</div>
 
   <script>
     const video = document.getElementById("video");
-    const debug = document.getElementById("debug");
     let currentStream = null;
-    let audioCtx, source;
 
     async function startCamLink() {
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
-        const camLink = devices.find(d =>
+
+        const camLinkVideo = devices.find(d =>
           d.kind === "videoinput" &&
           d.label.toLowerCase().includes("cam link 4k")
         );
 
-        if (!camLink) {
-          alert("Cam Link 4K not found.");
+        const camLinkAudio = devices.find(d =>
+          d.kind === "audioinput" &&
+          d.label.toLowerCase().includes("cam link 4k")
+        );
+
+        if (!camLinkVideo) {
+          alert("Cam Link 4K video not found.");
           return;
         }
 
         const constraints = {
           video: {
-            deviceId: { exact: camLink.deviceId },
+            deviceId: { exact: camLinkVideo.deviceId },
             width: { ideal: 3840 },
             height: { ideal: 2160 },
             frameRate: { ideal: 60 }
           },
-          audio: true
+          audio: camLinkAudio ? { deviceId: { exact: camLinkAudio.deviceId } } : false
         };
 
         if (currentStream) currentStream.getTracks().forEach(t => t.stop());
         currentStream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = currentStream;
 
-        const videoTrack = currentStream.getVideoTracks()[0];
-        const settings = videoTrack.getSettings();
-        debug.innerText = `
-Resolution: ${settings.width}x${settings.height}
-FPS: ${settings.frameRate || 'N/A'}
-Audio: ${currentStream.getAudioTracks().length > 0 ? 'Yes' : 'No'}
-        `.trim();
-
-        // Setup Web Audio API for autoplay audio
-        if (currentStream.getAudioTracks().length > 0) {
-          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          source = audioCtx.createMediaStreamSource(currentStream);
+        // Ensure audio plays automatically
+        if (camLinkAudio) {
+          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const source = audioCtx.createMediaStreamSource(currentStream);
           source.connect(audioCtx.destination);
         }
 
@@ -93,26 +74,7 @@ Audio: ${currentStream.getAudioTracks().length > 0 ? 'Yes' : 'No'}
       }
     }
 
-    function measureFPS() {
-      let last = performance.now();
-      let frames = 0;
-
-      function loop() {
-        frames++;
-        const now = performance.now();
-        if (now - last >= 1000) {
-          const fps = frames;
-          frames = 0;
-          last = now;
-          debug.innerText = debug.innerText.replace(/FPS: .*$/m, `FPS: ${fps}`);
-        }
-        requestAnimationFrame(loop);
-      }
-      loop();
-    }
-
     startCamLink();
-    measureFPS();
   </script>
 </body>
 </html>
