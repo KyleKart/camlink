@@ -26,21 +26,13 @@
       position: absolute;
       top: 15px;
       left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.85);
-      padding: 8px 12px;
-      border-radius: 8px;
-      backdrop-filter: blur(5px);
-      display: flex;
-      gap: 10px;
-      align-items: center;
+      transform: translateX(-50%) translateY(-10px);
       z-index: 10;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      
+      /* Fully hidden by default */
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.2s ease, transform 0.2s ease;
-      transform: translateX(-50%) translateY(-10px);
     }
 
     #controls.visible {
@@ -50,17 +42,20 @@
     }
 
     select {
-      background: #222;
+      background: rgba(20, 20, 20, 0.85);
       color: white;
-      border: 1px solid #444;
-      padding: 6px 10px;
-      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 8px 12px;
+      border-radius: 6px;
       outline: none;
       cursor: pointer;
+      font-size: 14px;
+      backdrop-filter: blur(4px);
     }
 
     select:hover {
-      border-color: #666;
+      border-color: rgba(255, 255, 255, 0.4);
+      background: rgba(30, 30, 30, 0.95);
     }
   </style>
 </head>
@@ -79,6 +74,7 @@
     const deviceSelect = document.getElementById("deviceSelect");
     let currentStream = null;
 
+    // Toggle controls visibility with Backtick (`) or Right-Click
     function toggleControls() {
       controls.classList.toggle("visible");
     }
@@ -165,7 +161,6 @@
     deviceSelect.addEventListener("change", (e) => {
       if (e.target.value) {
         startStream(e.target.value);
-        controls.classList.remove("visible");
       }
     });
 
