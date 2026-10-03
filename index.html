@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Cam Link 4K Viewer</title>
+  <title>Capture Device Viewer</title>
   <style>
     html, body {
       margin: 0;
@@ -12,6 +12,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      font-family: sans-serif;
     }
 
     video {
@@ -20,57 +21,137 @@
       object-fit: contain;
       background: black;
     }
+
+    #controls {
+      position: absolute;
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.75);
+      padding: 8px 12px;
+      border-radius: 8px;
+      backdrop-filter: blur(5px);
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      z-index: 10;
+      opacity: 0.3;
+      transition: opacity 0.3s ease;
+    }
+
+    #controls:hover {
+      opacity: 1;
+    }
+
+    select {
+      background: #222;
+      color: white;
+      border: 1px solid #444;
+      padding: 6px 10px;
+      border-radius: 4px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    select:hover {
+      border-color: #666;
+    }
   </style>
 </head>
 <body>
+  <div id="controls">
+    <select id="deviceSelect">
+      <option value="">-- Select Video Device --</option>
+    </select>
+  </div>
+
   <video id="video" autoplay playsinline></video>
 
   <script>
     const video = document.getElementById("video");
+    const deviceSelect = document.getElementById("deviceSelect");
     let currentStream = null;
 
-    async function startCamLink() {
+    async function startStream(deviceId) {
+      if (currentStream) {
+        currentStream.getTracks().forEach(t => t.stop());
+      }
+
       try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-
-        const camLinkVideo = devices.find(d =>
-          d.kind === "videoinput" &&
-          d.label.toLowerCase().includes("cam link 4k")
-        );
-
-        const camLinkAudio = devices.find(d =>
-          d.kind === "audioinput" &&
-          d.label.toLowerCase().includes("cam link 4k")
-        );
-
-        if (!camLinkVideo) {
-          alert("Cam Link 4K video not found.");
-          return;
-        }
-
         const constraints = {
           video: {
-            deviceId: { exact: camLinkVideo.deviceId },
+            deviceId: deviceId ? { exact: deviceId } : undefined,
             width: { ideal: 3840 },
             height: { ideal: 2160 },
             frameRate: { ideal: 60 }
           },
-          audio: camLinkAudio
-            ? { deviceId: { exact: camLinkAudio.deviceId } }
-            : false
+          audio: false
         };
-
-        if (currentStream) currentStream.getTracks().forEach(t => t.stop());
 
         currentStream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = currentStream;
 
+        const activeTrack = currentStream.getVideoTracks()[0];
+        if (activeTrack) {
+          const settings = activeTrack.getSettings();
+          if (settings.deviceId) {
+            localStorage.setItem("selectedVideoDeviceId", settings.deviceId);
+          }
+        }
       } catch (err) {
-        alert('Error accessing Cam Link 4K: ' + err.message);
+        console.error('Error accessing media device:', err);
       }
     }
 
-    startCamLink();
+    async function updateDeviceList() {
+      try {
+        if (!navigator.mediaDevices.enumerateDevices) {
+          alert("MediaDevices API not supported on this browser.");
+          return;
+        }
+
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === "videoinput");
+
+        deviceSelect.innerHTML = '<option value="">-- Select Video Device --</option>';
+        
+        videoDevices.forEach((device, index) => {
+          const option = document.createElement("option");
+          option.value = device.deviceId;
+          option.textContent = device.label || `Camera ${index + 1}`;
+          deviceSelect.appendChild(option);
+        });
+
+        const savedId = localStorage.getItem("selectedVideoDeviceId");
+        const match = videoDevices.find(d => d.deviceId === savedId);
+
+        if (match) {
+          deviceSelect.value = match.deviceId;
+          startStream(match.deviceId);
+        } else if (videoDevices.length > 0) {
+          const camLink = videoDevices.find(d => d.label.toLowerCase().includes("cam link 4k"));
+          const defaultDevice = camLink || videoDevices[0];
+          deviceSelect.value = defaultDevice.deviceId;
+          startStream(defaultDevice.deviceId);
+        }
+      } catch (err) {
+        console.error("Error loading devices:", err);
+      }
+    }
+
+    deviceSelect.addEventListener("change", (e) => {
+      if (e.target.value) {
+        startStream(e.target.value);
+      }
+    });
+
+    navigator.mediaDevices.addEventListener("devicechange", updateDeviceList);
+
+    navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+      .catch(() => {})
+      .finally(() => {
+        updateDeviceList();
+      });
   </script>
 </body>
 </html>
