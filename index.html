@@ -26,19 +26,14 @@
       position: absolute;
       top: 15px;
       left: 50%;
-      transform: translateX(-50%) translateY(-10px);
+      transform: translateX(-50%);
       z-index: 10;
       
-      /* Fully hidden by default */
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.2s ease, transform 0.2s ease;
+      display: none;
     }
 
     #controls.visible {
-      opacity: 1;
-      pointer-events: auto;
-      transform: translateX(-50%) translateY(0);
+      display: block;
     }
 
     select {
@@ -74,7 +69,6 @@
     const deviceSelect = document.getElementById("deviceSelect");
     let currentStream = null;
 
-    // Toggle controls visibility with Backtick (`) or Right-Click
     function toggleControls() {
       controls.classList.toggle("visible");
     }
