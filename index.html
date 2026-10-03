@@ -27,7 +27,7 @@
       top: 15px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.1);
+      background: rgba(0, 0, 0, 0.85);
       padding: 8px 12px;
       border-radius: 8px;
       backdrop-filter: blur(5px);
@@ -35,12 +35,18 @@
       gap: 10px;
       align-items: center;
       z-index: 10;
-      opacity: 0.3;
-      transition: opacity 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      transform: translateX(-50%) translateY(-10px);
     }
 
-    #controls:hover {
+    #controls.visible {
       opacity: 1;
+      pointer-events: auto;
+      transform: translateX(-50%) translateY(0);
     }
 
     select {
@@ -69,8 +75,25 @@
 
   <script>
     const video = document.getElementById("video");
+    const controls = document.getElementById("controls");
     const deviceSelect = document.getElementById("deviceSelect");
     let currentStream = null;
+
+    function toggleControls() {
+      controls.classList.toggle("visible");
+    }
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "`" || e.key === "~") {
+        e.preventDefault();
+        toggleControls();
+      }
+    });
+
+    window.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      toggleControls();
+    });
 
     async function startStream(deviceId) {
       if (currentStream) {
@@ -142,6 +165,7 @@
     deviceSelect.addEventListener("change", (e) => {
       if (e.target.value) {
         startStream(e.target.value);
+        controls.classList.remove("visible");
       }
     });
 
